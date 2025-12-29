@@ -1,0 +1,133 @@
+.header_admin_banner {
+    height: 220px;
+    background-image: url('/admin/img/admin_banner.jpg'); /* đổi thành tên file của bạn */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+}
+/* .header_admin_banner {
+    background-image: url('{{ asset('admin/img/admin_banner.jpg') }}');
+} */
+.header_admin_banner::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.header_admin_banner h1,
+.header_admin_banner p {
+    z-index: 2;
+    position: relative;
+}
+
+/* css font chu */
+ *{
+  font-family: "Marmelad", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+/* -------------------------------Navigation-------------------------------------------------------- */
+#nav-state {
+    background-color: bisque;
+    color: brown;
+    font-weight: bold;
+}
+.navbar ul li #nav-state{
+    text-decoration: none;
+    border-radius: 5px;
+}
+.navbar ul li #nav-state:hover{
+    background-color: rgb(247, 247, 247);
+    color: rgb(14, 13, 13);
+    transition: 0.3s;
+}
+
+/* CSS Tùy Chỉnh cho Active State và Separator */
+    .nav-link.active {
+        font-weight: bold;
+        color: #fff !important; 
+        background-color: rgba(255, 255, 255, 0.1); 
+        /* Gạch dưới cho mục active */
+        border-bottom: 3px solid #0d6efd; 
+    }
+
+    /* CSS cho Gạch phân cách đứng (Sau mục Danh mục) */
+    .nav-separator-right {
+        /* Dùng margin-right để tạo không gian cho gạch */
+        margin-right: 25px !important; 
+        position: relative;
+    }
+
+    .nav-separator-right::after {
+        content: "|";
+        position: absolute;
+        right: -10px; /* Vị trí của gạch dọc */
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d; 
+    }
+
+/* active menu */
+/* Tùy chỉnh màu chữ và nền cho mục đang Active */
+.navbar-dark .navbar-nav .nav-link.active {
+    /* Đảm bảo màu chữ nổi bật, quan trọng cho navbar-dark */
+    color: #ffffff !important; 
+    /* Màu nền nhẹ để nổi bật */
+    background-color: rgba(255, 255, 255, 0.1); 
+    
+    /* === PHẦN QUAN TRỌNG TẠO ĐƯỜNG LINE CHẠY DƯỚI === */
+    /* Tạo đường line dày 3px màu xanh (primary color) */
+    border-bottom: 3px solid #0d6efd; 
+}
+/* ---------------------------------------Login---------------------------------------------------------- */
+/* Khung full màn hình */
+.login-wrapper {
+    min-height: 75vh;
+}
+
+/* Card login */
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    background: #ffffff;
+    border-radius: 18px;
+}
+
+/* Tiêu đề */
+.login-card h2 {
+    font-weight: bold;
+}
+
+/* Input */
+.login-card .form-control {
+    padding: 10px 14px;
+    border-radius: 10px;
+}
+
+/* Nút */
+.login-card .btn {
+    padding: 10px;
+    font-size: 1.1rem;
+    border-radius: 10px;
+}
+/* CSS để định vị biểu tượng con mắt */
+.password-input-wrapper {
+    position: relative;
+}
+
+.toggle-password {
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    z-index: 100;
+    color: #888;
+}
+/* ------------------------------------------------------------------------------------------------- */
