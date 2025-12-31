@@ -560,6 +560,7 @@ header nav ul li a:hover::after {
 
 .hero h2 {
   font-size: 36px;
+  margin-top: -50px; /* Nâng chữ lên cao hơn nữa để giảm khoảng dư phía trên */
 }
 
 .hero p {

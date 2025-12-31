@@ -12,21 +12,31 @@
             <h2>Chào mừng đến với 2Tfresh Market</h2>
             <p>Gian hàng trái cây trực tuyến tươi và tốt cho sức khỏe !!</p>
             <div class="inner-slide">
-                <a href="#" class="slide">
-                    <img src="{{ asset('main_home/img/bannerqc/Bannerqc.jpg') }}" alt="Banner 1">
-                </a>
-                <a href="#" class="slide">
-                    <img src="{{ asset('main_home/img/bannerqc/bannerqc2.webp') }}" alt="Banner 2">
-                </a>
-                <a href="#" class="slide">
-                    <img src="{{ asset('main_home/img/bannerqc/Banner qc3.webp') }}" alt="Banner 3">
-                </a>
-                <a href="#" class="slide">
-                    <img src="{{ asset('main_home/img/bannerqc/bannerqc4.webp') }}" alt="Banner 4">
-                </a>
-                <a href="#" class="slide">
-                    <img src="{{ asset('main_home/img/bannerqc/bannerqc5.webp') }}" alt="Banner 5">
-                </a>
+                @php
+                    $sliders = \App\Models\Slider::where('is_active', true)->orderBy('sort_order')->get();
+                @endphp
+                @forelse($sliders as $slider)
+                    <a href="{{ $slider->link ?: '#' }}" class="slide">
+                        <img src="{{ asset($slider->image_path) }}" alt="{{ $slider->title ?: 'Banner' }}">
+                    </a>
+                @empty
+                    <!-- Fallback sliders if none in database -->
+                    <a href="#" class="slide">
+                        <img src="{{ asset('main_home/img/bannerqc/Bannerqc.jpg') }}" alt="Banner 1">
+                    </a>
+                    <a href="#" class="slide">
+                        <img src="{{ asset('main_home/img/bannerqc/bannerqc2.webp') }}" alt="Banner 2">
+                    </a>
+                    <a href="#" class="slide">
+                        <img src="{{ asset('main_home/img/bannerqc/Banner qc3.webp') }}" alt="Banner 3">
+                    </a>
+                    <a href="#" class="slide">
+                        <img src="{{ asset('main_home/img/bannerqc/bannerqc4.webp') }}" alt="Banner 4">
+                    </a>
+                    <a href="#" class="slide">
+                        <img src="{{ asset('main_home/img/bannerqc/bannerqc5.webp') }}" alt="Banner 5">
+                    </a>
+                @endforelse
             </div>
         </div>
     </section>
@@ -194,49 +204,7 @@
     </section>
     
 
-<!-- Giỏ hàng modal -->
-<div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-    <div class="modal-header" style="
-            background-color: #FFA451; 
-            color: #fff; 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between;
-            padding: 1rem 1.25rem;
-        ">
-        <h5 class="modal-title d-flex align-items-center">
-            <i class="bi bi-basket2-fill" style="margin-right:8px;"></i>
-            Giỏ hàng
-            <span id="cartModalCountRight" class="fw-bold ms-2" style="font-size:1rem;">({{ $cartCount ?? 0 }})</span>
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-    </div>
 
-      <div class="modal-body" id="cartItemsContainer" style="background-color: #fff8f0; min-height: 200px;">
-        <!-- Cart items sẽ được JS render ở đây -->
-      </div>
-      <div class="modal-footer" style="background-color: #F7F1E5;">
-        <h5 id="totalPriceContainer">Tổng tiền: 0 VNĐ</h5>
-       
-        <a href="#" id="checkoutBtn" class="btn btn-success" style="background-color: #28a745; border:none;">Thanh toán</a>
-        {{-- <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button> --}}
-      </div>
-    </div>
-  </div>
-</div>
-
-
-<!-- Toast -->
-<div class="position-fixed top-0 end-0 p-3" style="z-index:1080; margin-top:80px; background-color#E1D0B3">
-  <div id="cartToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-    <div class="d-flex">
-      <div class="toast-body">Đã thêm sản phẩm vào giỏ hàng!</div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-    </div>
-  </div>
-</div>
 
 
 
@@ -245,7 +213,6 @@
 
     {{-- <script src="{{ asset('main_home/js/recoveryAuth.js') }}"></script>
     <script src="{{ asset('main_home/js/script.js') }}"></script> --}}
-    <script src="{{ asset('main_home/js/cart.js') }}"></script>
    {{-- <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script> --}}
    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>

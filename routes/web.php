@@ -75,9 +75,271 @@ Route::get('admin/sua-san-pham/{id}',[\App\Http\Controllers\ProductController::c
     Route::get('admin/xoa-danh-muc/{id}',[\App\Http\Controllers\admin\CategoryController::class, 'del']);
     Route::get('admin/thong-tin-danh-muc/{id}',[\App\Http\Controllers\admin\CategoryController::class, 'show']);
     Route::post('admin/xu-ly-cap-nhat-danh-muc',[\App\Http\Controllers\admin\CategoryController::class, 'action_update']);
+
+    // Website Management
+    Route::get('admin/quan-ly-website', [\App\Http\Controllers\admin\WebsiteController::class, 'index'])->name('admin.website.index');
+    Route::post('admin/cap-nhat-logo', [\App\Http\Controllers\admin\WebsiteController::class, 'updateLogo'])->name('admin.website.updateLogo');
+    Route::post('admin/cap-nhat-favicon', [\App\Http\Controllers\admin\WebsiteController::class, 'updateFavicon'])->name('admin.website.updateFavicon');
+    Route::post('admin/tao-slider', [\App\Http\Controllers\admin\WebsiteController::class, 'createSlider'])->name('admin.website.createSlider');
+    Route::post('admin/cap-nhat-slider/{id}', [\App\Http\Controllers\admin\WebsiteController::class, 'updateSlider'])->name('admin.website.updateSlider');
+    Route::get('admin/xoa-slider/{id}', [\App\Http\Controllers\admin\WebsiteController::class, 'deleteSlider'])->name('admin.website.deleteSlider');
+    Route::get('admin/thong-tin-slider/{id}', [\App\Http\Controllers\admin\WebsiteController::class, 'getSliderInfo'])->name('admin.website.getSliderInfo');
+
+    // Debug route for favicon testing
+    Route::get('admin/test-favicon', function() {
+        $favicon = \App\Models\WebsiteSetting::where('setting_key', 'favicon')->first();
+        $logo = \App\Models\WebsiteSetting::where('setting_key', 'logo')->first();
+
+        $faviconExists = $favicon && $favicon->setting_value && \Storage::disk('public')->exists($favicon->setting_value);
+        $logoExists = $logo && $logo->setting_value && \Storage::disk('public')->exists($logo->setting_value);
+
+        return response()->json([
+            'favicon' => [
+                'exists_in_db' => $favicon ? true : false,
+                'value' => $favicon ? $favicon->setting_value : null,
+                'url' => $favicon ? asset($favicon->setting_value) : null,
+                'file_exists' => $faviconExists,
+                'full_path' => $favicon ? storage_path('app/public/' . $favicon->setting_value) : null,
+            ],
+            'logo' => [
+                'exists_in_db' => $logo ? true : false,
+                'value' => $logo ? $logo->setting_value : null,
+                'url' => $logo ? asset($logo->setting_value) : null,
+                'file_exists' => $logoExists,
+                'full_path' => $logo ? storage_path('app/public/' . $logo->setting_value) : null,
+            ],
+            'storage_paths' => [
+                'storage_app_public' => storage_path('app/public'),
+                'public_storage_link' => public_path('storage'),
+                'favicon_dir' => storage_path('app/public/favicons'),
+                'logo_dir' => storage_path('app/public/logos'),
+            ],
+            'directories_exist' => [
+                'favicons' => file_exists(storage_path('app/public/favicons')),
+                'logos' => file_exists(storage_path('app/public/logos')),
+            ],
+        ]);
+    });
+
+    // Test upload route
+    Route::post('admin/test-upload', function(\Illuminate\Http\Request $request) {
+        try {
+            if (!$request->hasFile('test_file')) {
+                return response()->json(['error' => 'No file uploaded']);
+            }
+
+            $file = $request->file('test_file');
+            $path = $file->store('test', 'public');
+
+            return response()->json([
+                'success' => true,
+                'path' => $path,
+                'url' => asset($path),
+                'file_exists' => \Storage::disk('public')->exists($path),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    });
+
+    // Fix duplicate sliders
+    Route::get('admin/fix-duplicate-sliders', function() {
+        $duplicates = \App\Models\Slider::selectRaw('title, image_path, COUNT(*) as count')
+            ->groupBy('title', 'image_path')
+            ->having('count', '>', 1)
+            ->get();
+
+        $fixed = 0;
+        foreach ($duplicates as $duplicate) {
+            $sliders = \App\Models\Slider::where('title', $duplicate->title)
+                ->where('image_path', $duplicate->image_path)
+                ->orderBy('id')
+                ->get();
+
+            // Keep the first one, delete the rest
+            for ($i = 1; $i < $sliders->count(); $i++) {
+                $sliders[$i]->delete();
+                $fixed++;
+            }
+        }
+
+        return response()->json([
+            'message' => "Đã xóa $fixed slider trùng lặp",
+            'duplicates_found' => $duplicates->count(),
+        ]);
+    });
+
+    // Quick favicon debug (no middleware required for debugging)
+    Route::get('admin/favicon-debug', function() {
+        $favicon = \App\Models\WebsiteSetting::where('setting_key', 'favicon')->first();
+
+        $debug = [
+            'favicon_in_db' => $favicon ? true : false,
+            'favicon_path' => $favicon ? $favicon->setting_value : null,
+            'file_exists' => $favicon && $favicon->setting_value ? \Storage::disk('public')->exists($favicon->setting_value) : false,
+            'full_path' => $favicon ? storage_path('app/public/' . $favicon->setting_value) : null,
+            'public_path' => public_path('storage'),
+            'favicon_dir_exists' => file_exists(storage_path('app/public/favicons')),
+            'favicon_files' => file_exists(storage_path('app/public/favicons')) ? scandir(storage_path('app/public/favicons')) : [],
+            'current_time' => now()->toDateTimeString(),
+            'favicon_url' => $favicon ? asset('storage/' . $favicon->setting_value) : null,
+            'storage_link_exists' => file_exists(public_path('storage')),
+        ];
+
+        return response()->json($debug, 200, [], JSON_PRETTY_PRINT);
+    });
+
+    // Test favicon display on homepage
+    Route::get('test-favicon-display', function() {
+        return view('home');
+    });
+
+    // Direct favicon test
+    Route::get('direct-favicon-test', function() {
+        $favicon = \App\Models\WebsiteSetting::where('setting_key', 'favicon')->first();
+
+        $html = '
+        <html>
+        <head>
+        <title>Favicon Test</title>
+        ';
+
+        if ($favicon) {
+            $url = asset('storage/' . $favicon->setting_value);
+            $html .= '<link rel="icon" type="image/x-icon" href="' . $url . '?v=' . time() . '">';
+            $html .= '<link rel="shortcut icon" type="image/x-icon" href="' . $url . '?v=' . time() . '">';
+            $html .= '<meta name="favicon-url" content="' . $url . '">';
+        }
+
+        $html .= '
+        </head>
+        <body>
+        <h1>Favicon Direct Test</h1>
+        <p>Check if favicon appears in browser tab</p>
+        ';
+
+        if ($favicon) {
+            $html .= '<p><strong>Favicon URL:</strong> ' . asset('storage/' . $favicon->setting_value) . '?v=' . time() . '</p>';
+            $html .= '<p><strong>Database value:</strong> ' . $favicon->setting_value . '</p>';
+            $html .= '<p><strong>File exists:</strong> ' . (\Storage::disk('public')->exists($favicon->setting_value) ? 'YES' : 'NO') . '</p>';
+            $html .= '<p><strong>Direct image:</strong> <img src="' . asset('storage/' . $favicon->setting_value) . '?v=' . time() . '" style="width:32px;height:32px;" alt="favicon"></p>';
+        } else {
+            $html .= '<p><strong>No favicon in database</strong></p>';
+        }
+
+        $html .= '
+        <br><a href="' . url('/') . '">Back to Home</a>
+        <br><a href="' . url('favicon-force-refresh') . '">Force Refresh Test</a>
+        </body>
+        </html>';
+
+        return $html;
+    });
+
+    // Force favicon refresh test
+    Route::get('favicon-force-refresh', function() {
+        $favicon = \App\Models\WebsiteSetting::where('setting_key', 'favicon')->first();
+
+        if ($favicon && \Storage::disk('public')->exists($favicon->setting_value)) {
+            $path = storage_path('app/public/' . $favicon->setting_value);
+
+            // Force browser to not cache
+            return response()->file($path, [
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+                'Content-Type' => 'image/x-icon'
+            ]);
+        }
+
+        return response('Favicon not found', 404);
+    });
+
+    // Test favicon upload directly
+    Route::get('admin/test-favicon-upload', function() {
+        return '
+        <html>
+        <head><title>Test Favicon Upload</title></head>
+        <body>
+        <h1>Test Favicon Upload</h1>
+        <form action="' . url('admin/test-favicon-process') . '" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="_token" value="' . csrf_token() . '">
+            <input type="file" name="favicon" accept="image/*" required>
+            <button type="submit">Upload Favicon</button>
+        </form>
+        <br>
+        <a href="' . url('admin/favicon-debug') . '">Check Debug Info</a>
+        <br>
+        <a href="' . url('admin/test-favicon-process') . '">Test Process Route</a>
+        </body>
+        </html>';
+    });
+
+    Route::post('admin/test-favicon-process', function(\Illuminate\Http\Request $request) {
+        try {
+            \Log::info('Test favicon upload started', [
+                'has_file' => $request->hasFile('favicon'),
+                'all_files' => $request->allFiles(),
+                'method' => $request->method(),
+                'url' => $request->fullUrl(),
+            ]);
+
+            if (!$request->hasFile('favicon')) {
+                return 'No favicon file uploaded';
+            }
+
+            $file = $request->file('favicon');
+
+            \Log::info('File details', [
+                'name' => $file->getClientOriginalName(),
+                'mime' => $file->getMimeType(),
+                'size' => $file->getSize(),
+                'extension' => $file->getClientOriginalExtension(),
+                'is_valid' => $file->isValid(),
+            ]);
+
+            // Ensure directory exists
+            $faviconsPath = storage_path('app/public/favicons');
+            if (!file_exists($faviconsPath)) {
+                mkdir($faviconsPath, 0755, true);
+                \Log::info('Created favicons directory', ['path' => $faviconsPath]);
+            }
+
+            // Store file
+            $filename = 'test_favicon_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('favicons', $filename, 'public');
+
+            \Log::info('File stored', ['path' => $path]);
+
+            if (!$path) {
+                return 'Failed to store file';
+            }
+
+            // Save to database
+            $saved = \App\Models\WebsiteSetting::updateOrCreate(
+                ['setting_key' => 'favicon'],
+                ['setting_value' => $path, 'setting_type' => 'image']
+            );
+
+            \Log::info('Saved to database', ['saved' => $saved]);
+
+            return 'SUCCESS: Favicon uploaded and saved!<br>
+                   Path: ' . $path . '<br>
+                   URL: ' . asset('storage/' . $path) . '<br>
+                   <a href="' . url('admin/favicon-debug') . '">Check Debug</a>';
+
+        } catch (\Exception $e) {
+            \Log::error('Test favicon upload error: ' . $e->getMessage());
+            return 'ERROR: ' . $e->getMessage() . '<br>
+                   <a href="' . url('admin/test-favicon-upload') . '">Try Again</a>';
+        }
+    });
 });
 
-//login
+////login admin - không cần middleware vì đây là trang đăng nhập
 Route::get('admin/dang-nhap',[\App\Http\Controllers\admin\UserController::class,'login']);
 Route::post('admin/xu-ly-dang-nhap',[\App\Http\Controllers\admin\UserController::class,'action_login']);
 Route::get('admin/thoat',[App\Http\Controllers\admin\UserController::class,'logout']);
@@ -491,6 +753,8 @@ Route::get('/api/search-suggestions', function (Illuminate\Http\Request $request
 
 // Product Reviews
 Route::post('/product/{id}/review', [ProductController::class, 'storeReview'])->name('product.review.store');
+Route::put('/product/{id}/review', [ProductController::class, 'updateReview'])->name('product.review.update');
+Route::delete('/product/{id}/review', [ProductController::class, 'deleteReview'])->name('product.review.delete');
 Route::get('/product/{id}/reviews', [ProductController::class, 'getReviews'])->name('product.reviews');
 
 // Popular products API for focus suggestions

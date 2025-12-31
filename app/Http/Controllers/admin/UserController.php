@@ -106,13 +106,39 @@ class UserController extends Controller
     }
     //login
     public function login(){
+        // Check if user is already logged in as customer (user_role != 1)
+        $user = session('user');
+
+        // Debug: Log session data
+        \Log::info('Admin login check - Raw session user:', ['user' => $user]);
+
+        // Check if user is logged in and not an admin
+        $isLoggedInAsCustomer = false;
+        if ($user && is_array($user)) {
+            $userRole = $user['user_role'] ?? null;
+            // Convert to int for comparison (handle both string and int)
+            $userRoleInt = is_numeric($userRole) ? (int) $userRole : 0;
+
+            \Log::info('Admin login check - User role:', ['role' => $userRole, 'role_int' => $userRoleInt]);
+
+            if ($userRoleInt !== 1) { // Not admin
+                $isLoggedInAsCustomer = true;
+            }
+        }
+
+        if ($isLoggedInAsCustomer) {
+            \Log::info('Blocking customer user from admin login');
+            // User is logged in as customer, show access denied page like other admin routes
+            return response()->view('errors.access-denied', [], 403);
+        }
+
         return view('admin/login');
     }
     //logout
     public function logout(){
         session()->forget ('user');
         //$request->session()->flush();
-        return redirect()->to('admin/danh-sach-nguoi-dung');
+        return redirect()->to('admin/dang-nhap');
     }
     //xử lý action_login
     public function action_login(Request $request){

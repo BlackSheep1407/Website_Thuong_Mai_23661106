@@ -27,7 +27,7 @@
 
 <div class="row">
     <div class="col-12">
-        <h2 class="text-center my-4">Quản Lý Người Dùng</h2>
+        <h2 class="text-center mb-4">Quản Lý Người Dùng</h2>
     </div>
 
     <div class="col-12 mb-3 text-end">

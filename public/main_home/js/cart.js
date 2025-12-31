@@ -1,11 +1,20 @@
 // public/main_home/js/cart.js
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM loaded, checking cart elements...');
   const cartItemsContainer = document.getElementById('cartItemsContainer');
   const cartBadge = document.getElementById('cartBadge') || document.getElementById('headerCartCount') || document.getElementById('cartCount');
   const totalPriceContainer = document.getElementById('totalPriceContainer');
   const cartToastEl = document.getElementById('cartToast');
   const cartToast = cartToastEl ? new bootstrap.Toast(cartToastEl, { delay: 1800 }) : null;
   const checkoutBtn = document.getElementById('checkoutBtn');
+
+  console.log('Cart elements found:', {
+    cartItemsContainer: !!cartItemsContainer,
+    cartBadge: !!cartBadge,
+    totalPriceContainer: !!totalPriceContainer,
+    cartToastEl: !!cartToastEl,
+    checkoutBtn: !!checkoutBtn
+  });
 
   const fmt = n => n ? Number(n).toLocaleString('vi-VN') : '0';
 
@@ -98,30 +107,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // For each product render the layout you asked: image, name, type, unit price, qty controls center, product total, delete
     for (const pid in cart) {
       const it = cart[pid];
+      // Ensure image path is absolute
+      const imageUrl = it.image.startsWith('/') ? it.image : '/' + it.image;
+
       const row = document.createElement('div');
       row.className = 'row align-items-center mb-3 cart-item-row border-bottom pb-2';
       row.innerHTML = `
-        <div class="col-2">
-          <img src="${it.image}" alt="${escapeHtml(it.name)}" class="img-fluid rounded" style="max-height:64px; object-fit:cover;">
+        <div class="col-12 col-md-2 mb-2 mb-md-0">
+          <img src="${imageUrl}" alt="${escapeHtml(it.name)}" class="img-fluid rounded" style="max-height:64px; object-fit:cover;" onerror="this.src='/main_home/img/Trái cây cắt sẵn CS01.jpg'">
         </div>
-        <div class="col-3">
-          <p class="mb-1 fw-bold">${escapeHtml(it.name)}</p>
-          <small class="text-muted">${escapeHtml(it.category || '')}</small>
+        <div class="col-12 col-md-2 px-2">
+          <p class="mb-1 fw-bold" style="word-break: break-word; line-height: 1.3;" title="${escapeHtml(it.name)}">${escapeHtml(it.name)}</p>
+          <small class="text-muted d-block mt-1">${escapeHtml(it.category || '')}</small>
         </div>
-        <div class="col-2">
-          <p class="mb-1">${fmt(it.price)} VNĐ</p>
+        <div class="col-6 col-md-2 mb-2 mb-md-0 px-1 text-center">
+          <p class="mb-1 fw-semibold cart-item-price">${fmt(it.price)} VNĐ</p>
         </div>
-        <div class="col-2">
+        <div class="col-6 col-md-2 mb-2 mb-md-0 px-1">
             <div class="d-flex align-items-center justify-content-center gap-2">
                 <button class="btn btn-sm btn-outline-danger btn-decrease" data-id="${pid}">-</button>
                 <div class="qty-display px-2 py-1 border rounded text-center">${it.qty}</div>
                 <button class="btn btn-sm btn-outline-success btn-increase" data-id="${pid}">+</button>
             </div>
         </div>
-        <div class="col-2 text-center">
-          <p class="mb-1 fw-bold">${fmt(it.price * it.qty)} VNĐ</p>
+        <div class="col-8 col-md-3 mb-2 mb-md-0 px-2 text-center">
+          <p class="mb-1 fw-bold cart-item-subtotal">${fmt(it.price * it.qty)} VNĐ</p>
         </div>
-        <div class="col-1 text-center">
+        <div class="col-6 col-md-1 mb-2 mb-md-0 px-1 text-center">
           <button class="btn btn-sm btn-outline-secondary btn-remove" data-id="${pid}">Xóa</button>
         </div>
       `;
@@ -304,8 +316,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // initial load and render
   (async function init() {
-    const data = await getCartContent();
-    if (data) renderCart(data);
+    console.log('Cart init starting...');
+    // Small delay to ensure modal elements are ready
+    setTimeout(async () => {
+      console.log('Cart init delayed execution...');
+      const data = await getCartContent();
+      console.log('Cart init data received:', data);
+      if (data) {
+        renderCart(data);
+        console.log('Cart rendered successfully');
+      } else {
+        console.log('Cart init: no data received');
+      }
+    }, 100);
   })();
 
   // checkout: call server to persist order and refresh cart UI

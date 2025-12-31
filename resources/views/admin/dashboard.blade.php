@@ -2,8 +2,8 @@
 
 <style>
     .dashboard-section {
-        margin-top: 120px;
-        padding: 40px 0;
+        margin-top: 0;
+        padding: 0 0 20px 0;
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         min-height: 70vh;
     }
@@ -90,7 +90,7 @@
     <div class="container">
         <div class="row">
             <div class="col-12">
-                <h1 class="text-center mb-4">Bảng Điều Khiển Admin</h1>
+                <h1 class="text-center mb-4 mt-0">Bảng Điều Khiển Admin</h1>
 
                 @if(session('welcome'))
                     <div class="alert alert-success alert-dismissible fade show text-center" role="alert">

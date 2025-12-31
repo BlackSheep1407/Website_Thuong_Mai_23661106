@@ -1,10 +1,7 @@
-@extends('admin/template/header')
-
-@section('content')
+@include('admin/template/header')
 <style>
     .admin-profile-section {
-        margin-top: 120px;
-        padding: 40px 0;
+        padding: 20px 0;
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         min-height: 70vh;
     }
@@ -289,4 +286,4 @@ function resetAdminForm() {
 }
 </script>
 
-@endsection
+@include('admin/template/footer')

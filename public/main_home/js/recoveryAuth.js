@@ -32,8 +32,8 @@ window.addEventListener('click', function(event) {
 recoverForm.addEventListener('submit', function(event) {
     event.preventDefault();  // Prevent the page from refreshing
 
-    const username = recoverForm.querySelector('input[type="email"]').value;
-    
+    const email = recoverForm.querySelector('input[type="email"]').value;
+
 
     // Simple validation (this can be enhanced with more detailed checks)
     if (email === '' ) {
@@ -43,5 +43,5 @@ recoverForm.addEventListener('submit', function(event) {
      // Simulate successful registration
      alert('Đã gửi đường link xác nhận qua email, vui lòng kiểm tra và xác nhận để khôi phục tài khoản.');
      recoverModal.style.display = 'none';  // Close the recover modal after successful recovery
-     
+
 });

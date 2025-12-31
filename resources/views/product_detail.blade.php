@@ -209,10 +209,17 @@
             border: 1px solid #dee2e6;
         }
 
+        .rating-input-container {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            border: 1px solid #e9ecef;
+        }
+
         .rating-input {
             display: flex;
-            gap: 5px;
-            direction: rtl;
+            gap: 10px;
+            justify-content: center;
         }
 
         .rating-input input[type="radio"] {
@@ -221,15 +228,25 @@
 
         .rating-input label {
             color: #ddd;
-            font-size: 1.5rem;
+            font-size: 2rem;
             cursor: pointer;
-            transition: color 0.3s;
+            transition: all 0.3s;
+            padding: 5px;
+            border-radius: 5px;
         }
 
-        .rating-input input[type="radio"]:checked ~ label,
         .rating-input label:hover,
-        .rating-input label:hover ~ label {
+        .rating-input input[type="radio"]:checked ~ label,
+        .rating-input input[type="radio"]:checked + label {
             color: #ffc107;
+            background-color: #fff3cd;
+            transform: scale(1.1);
+        }
+
+        .rating-text {
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 500;
         }
 
         .review-item {
@@ -416,18 +433,23 @@
                                 <form id="reviewForm" class="mt-3">
                                     @csrf
                                     <div class="mb-3">
-                                        <label class="form-label">Đánh giá:</label>
-                                        <div class="rating-input">
-                                            @for($i = 5; $i >= 1; $i--)
-                                                <input type="radio" id="star{{ $i }}" name="rating" value="{{ $i }}" required>
-                                                <label for="star{{ $i }}" title="{{ $i }} sao">
-                                                    <i class="fas fa-star"></i>
-                                                </label>
-                                            @endfor
+                                        <label class="form-label fw-bold">Đánh giá sản phẩm:</label>
+                                        <div class="rating-input-container">
+                                            <div class="rating-input">
+                                                @for($i = 1; $i <= 5; $i++)
+                                                    <input type="radio" id="star{{ $i }}" name="rating" value="{{ $i }}" required>
+                                                    <label for="star{{ $i }}" title="{{ $i }} sao">
+                                                        <i class="fas fa-star"></i>
+                                                    </label>
+                                                @endfor
+                                            </div>
+                                            <div class="rating-text mt-2">
+                                                <span id="ratingText" class="text-muted">Chọn số sao để đánh giá</span>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="mb-3">
-                                        <label for="comment" class="form-label">Bình luận:</label>
+                                        <label for="comment" class="form-label fw-bold">Bình luận:</label>
                                         <textarea class="form-control" id="comment" name="comment" rows="4"
                                                   placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm này..."
                                                   required minlength="10"></textarea>
@@ -439,11 +461,45 @@
                                 </form>
                             </div>
                         @else
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                Bạn đã đánh giá sản phẩm này rồi.
-                                <strong>{{ $userReview->rating }} sao</strong> -
-                                "{{ Str::limit($userReview->comment, 50) }}"
+                            <div class="review-form-card mb-4">
+                                <h5><i class="fas fa-edit me-2"></i>Sửa đánh giá của bạn</h5>
+                                <form id="reviewForm" class="mt-3">
+                                    @csrf
+                                    @method('PUT')
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Đánh giá sản phẩm:</label>
+                                        <div class="rating-input-container">
+                                            <div class="rating-input">
+                                                @for($i = 1; $i <= 5; $i++)
+                                                    <input type="radio" id="star{{ $i }}" name="rating" value="{{ $i }}" {{ $userReview->rating == $i ? 'checked' : '' }} required>
+                                                    <label for="star{{ $i }}" title="{{ $i }} sao">
+                                                        <i class="fas fa-star"></i>
+                                                    </label>
+                                                @endfor
+                                            </div>
+                                            <div class="rating-text mt-2">
+                                                <span id="ratingText" class="text-primary fw-bold">{{ $userReview->rating }} sao</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="comment" class="form-label fw-bold">Bình luận:</label>
+                                        <textarea class="form-control" id="comment" name="comment" rows="4"
+                                                  placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm này..."
+                                                  required minlength="10">{{ $userReview->comment }}</textarea>
+                                        <small class="text-muted">Ít nhất 10 ký tự</small>
+                                    </div>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-save me-2"></i>Cập nhật đánh giá
+                                    </button>
+                                    <button type="button" class="btn btn-danger ms-2" onclick="deleteReview({{ $product->product_id }})">
+                                        <i class="fas fa-trash me-2"></i>Xóa đánh giá
+                                    </button>
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Đánh giá lần cuối: {{ $userReview->updated_at->diffForHumans() }}
+                                    </small>
+                                </form>
                             </div>
                         @endif
                     @else
@@ -524,37 +580,7 @@
         </div>
     </div>
 
-<!-- Giỏ hàng modal -->
-<div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-    <div class="modal-header" style="
-            background-color: #FFA451;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1rem 1.25rem;
-        ">
-        <h5 class="modal-title d-flex align-items-center">
-            <i class="bi bi-basket2-fill" style="margin-right:8px;"></i>
-            Giỏ hàng
-            <span id="cartModalCountRight" class="fw-bold ms-2" style="font-size:1rem;">(0)</span>
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-    </div>
 
-      <div class="modal-body" id="cartItemsContainer" style="background-color: #fff8f0; min-height: 200px;">
-        <!-- Cart items sẽ được JS render ở đây -->
-      </div>
-      <div class="modal-footer" style="background-color: #F7F1E5;">
-        <h5 id="totalPriceContainer">Tổng tiền: 0 VNĐ</h5>
-
-        <a href="/checkout" id="checkoutBtn" class="btn btn-success" style="background-color: #28a745; border:none;">Thanh toán</a>
-      </div>
-    </div>
-  </div>
-</div>
 
 
 <!-- Toast -->
@@ -567,7 +593,7 @@
   </div>
 </div>
 
-<script src="{{ asset('main_home/js/cart.js') }}"></script>
+
 
 <!-- Review System JavaScript -->
 <script>
@@ -581,14 +607,34 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(this);
             formData.append('_token', '{{ csrf_token() }}');
 
-            fetch('{{ url("product/" . $product->id . "/review") }}', {
-                method: 'POST',
-                body: formData,
+            // Check if this is an edit (PUT request) or new review (POST)
+            const method = this.querySelector('input[name="_method"]')?.value || 'POST';
+
+            // For PUT requests, we need to send the data as query parameters instead of FormData
+            let url = '{{ url("product/" . $product->product_id . "/review") }}';
+            let fetchOptions = {
+                method: method,
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 }
-            })
+            };
+
+            if (method === 'PUT') {
+                // For PUT requests, convert FormData to URLSearchParams
+                const params = new URLSearchParams();
+                for (let [key, value] of formData.entries()) {
+                    params.append(key, value);
+                }
+                url += '?' + params.toString();
+                fetchOptions.body = null; // No body for PUT with query params
+            } else {
+                // For POST requests, use FormData as body
+                fetchOptions.body = formData;
+            }
+
+            fetch(url, fetchOptions)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('HTTP error! status: ' + response.status);
@@ -600,10 +646,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Show success message
                     showAlert('success', data.message);
 
-                    // Reset form
-                    reviewForm.reset();
+                    // For updates, don't reset form, just reload to show changes
+                    if (method === 'POST') {
+                        reviewForm.reset();
+                    }
 
-                    // Reload page to show new review
+                    // Reload page to show updated review
                     setTimeout(() => {
                         window.location.reload();
                     }, 1500);
@@ -624,21 +672,124 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Review sorting
+    // Review sorting with AJAX
     const sortSelect = document.getElementById('sortReviews');
     if (sortSelect) {
         sortSelect.addEventListener('change', function() {
             const sortBy = this.value;
-            const url = new URL(window.location);
+            loadReviews(sortBy, 1); // Load first page with new sort
+        });
+    }
 
-            if (sortBy === 'newest') {
-                url.searchParams.delete('sort');
-            } else {
-                url.searchParams.set('sort', sortBy);
+    // Function to load reviews via AJAX
+    function loadReviews(sortBy = 'newest', page = 1) {
+        const reviewsContainer = document.getElementById('reviewsContainer');
+        if (!reviewsContainer) return;
+
+        // Show loading
+        reviewsContainer.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+        fetch(`{{ url("product/" . $product->product_id . "/reviews") }}?sort=${sortBy}&page=${page}`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Update reviews container with new data
+            let html = generateReviewsHTML(data.reviews.data);
+
+            // Add pagination if available - generate simple pagination
+            if (data.reviews.last_page > 1) {
+                html += '<div class="d-flex justify-content-center mt-3">';
+                html += '<nav><ul class="pagination">';
+
+                // Previous button
+                if (data.reviews.current_page > 1) {
+                    html += `<li class="page-item"><a class="page-link" href="#" onclick="loadReviews('${sortBy}', ${data.reviews.current_page - 1})">Trước</a></li>`;
+                }
+
+                // Page numbers (simple version - show current ± 2)
+                const start = Math.max(1, data.reviews.current_page - 2);
+                const end = Math.min(data.reviews.last_page, data.reviews.current_page + 2);
+
+                for (let i = start; i <= end; i++) {
+                    const activeClass = i === data.reviews.current_page ? ' active' : '';
+                    html += `<li class="page-item${activeClass}"><a class="page-link" href="#" onclick="loadReviews('${sortBy}', ${i})">${i}</a></li>`;
+                }
+
+                // Next button
+                if (data.reviews.current_page < data.reviews.last_page) {
+                    html += `<li class="page-item"><a class="page-link" href="#" onclick="loadReviews('${sortBy}', ${data.reviews.current_page + 1})">Sau</a></li>`;
+                }
+
+                html += '</ul></nav>';
+                html += '</div>';
             }
 
-            window.location.href = url.toString();
+            reviewsContainer.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error loading reviews:', error);
+            reviewsContainer.innerHTML = '<div class="alert alert-danger">Có lỗi khi tải đánh giá. Vui lòng thử lại.</div>';
         });
+    }
+
+    // Generate HTML for reviews
+    function generateReviewsHTML(reviews) {
+        if (!reviews || reviews.length === 0) {
+            return `
+                <div class="text-center py-5">
+                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Chưa có đánh giá nào</h5>
+                    <p class="text-muted">Hãy là người đầu tiên đánh giá sản phẩm này!</p>
+                </div>
+            `;
+        }
+
+        let html = '';
+        reviews.forEach(review => {
+            html += `
+                <div class="review-item mb-4">
+                    <div class="review-header d-flex align-items-start">
+                        <div class="review-avatar me-3">
+                            ${review.user && review.user.avatar ?
+                                `<img src="/${review.user.avatar}" alt="${review.user.user_fullname}" class="rounded-circle" width="50" height="50">` :
+                                `<div class="avatar-placeholder">${(review.user ? review.user.user_fullname : 'N/A').charAt(0).toUpperCase()}</div>`
+                            }
+                        </div>
+                        <div class="review-content flex-grow-1">
+                            <div class="review-meta d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <strong class="review-author">${review.user ? review.user.user_fullname : 'Người dùng ẩn danh'}</strong>
+                                    <div class="review-rating">
+                                        ${generateStarsHTML(review.rating)}
+                                        <span class="rating-text ms-1">${review.rating}/5</span>
+                                    </div>
+                                </div>
+                                <small class="text-muted">${new Date(review.created_at).toLocaleDateString('vi-VN')}</small>
+                            </div>
+                            <div class="review-comment">
+                                <p class="mb-0">${review.comment.replace(/\n/g, '<br>')}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        return html;
+    }
+
+    // Generate stars HTML
+    function generateStarsHTML(rating) {
+        let stars = '';
+        for (let i = 1; i <= 5; i++) {
+            stars += `<i class="fas fa-star ${i <= rating ? 'filled' : ''}"></i>`;
+        }
+        return stars;
     }
 });
 
@@ -669,40 +820,74 @@ function showAlert(type, message) {
     }, 5000);
 }
 
-// Star rating hover effects
+// Star rating system with feedback
 document.addEventListener('DOMContentLoaded', function() {
     const ratingInputs = document.querySelectorAll('.rating-input input[type="radio"]');
     const ratingLabels = document.querySelectorAll('.rating-input label');
+    const ratingText = document.getElementById('ratingText');
 
+    // Rating descriptions
+    const ratingDescriptions = {
+        1: 'Rất tệ',
+        2: 'Tệ',
+        3: 'Bình thường',
+        4: 'Tốt',
+        5: 'Xuất sắc'
+    };
+
+    // Function to update rating text
+    function updateRatingText(selectedRating) {
+        if (ratingText) {
+            if (selectedRating) {
+                ratingText.textContent = `${selectedRating} sao - ${ratingDescriptions[selectedRating]}`;
+                ratingText.className = 'rating-text mt-2 text-primary fw-bold';
+            } else {
+                ratingText.textContent = 'Chọn số sao để đánh giá';
+                ratingText.className = 'rating-text mt-2 text-muted';
+            }
+        }
+    }
+
+    // Function to highlight stars
+    function highlightStars(count) {
+        ratingLabels.forEach((label, index) => {
+            if (index < count) {
+                label.style.color = '#ffc107';
+                label.style.backgroundColor = '#fff3cd';
+                label.style.transform = 'scale(1.1)';
+            } else {
+                label.style.color = '#ddd';
+                label.style.backgroundColor = 'transparent';
+                label.style.transform = 'scale(1)';
+            }
+        });
+    }
+
+    // Hover effects
     ratingLabels.forEach((label, index) => {
         label.addEventListener('mouseenter', function() {
-            // Highlight stars up to this one
-            for (let i = 0; i <= index; i++) {
-                ratingLabels[i].style.color = '#ffc107';
-            }
+            highlightStars(index + 1);
+            updateRatingText(index + 1);
         });
 
         label.addEventListener('mouseleave', function() {
-            // Reset to current selection
-            ratingLabels.forEach(l => l.style.color = '#ddd');
-
             const checkedInput = document.querySelector('.rating-input input[type="radio"]:checked');
             if (checkedInput) {
                 const checkedIndex = Array.from(ratingInputs).indexOf(checkedInput);
-                for (let i = 0; i <= checkedIndex; i++) {
-                    ratingLabels[i].style.color = '#ffc107';
-                }
+                highlightStars(checkedIndex + 1);
+                updateRatingText(checkedIndex + 1);
+            } else {
+                highlightStars(0);
+                updateRatingText(null);
             }
         });
     });
 
-    // Update stars on radio button change
+    // Click effects
     ratingInputs.forEach((input, index) => {
         input.addEventListener('change', function() {
-            ratingLabels.forEach(l => l.style.color = '#ddd');
-            for (let i = 0; i <= index; i++) {
-                ratingLabels[i].style.color = '#ffc107';
-            }
+            highlightStars(index + 1);
+            updateRatingText(index + 1);
         });
     });
 
@@ -710,11 +895,47 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkedInput = document.querySelector('.rating-input input[type="radio"]:checked');
     if (checkedInput) {
         const checkedIndex = Array.from(ratingInputs).indexOf(checkedInput);
-        for (let i = 0; i <= checkedIndex; i++) {
-            ratingLabels[i].style.color = '#ffc107';
-        }
+        highlightStars(checkedIndex + 1);
+        updateRatingText(checkedIndex + 1);
     }
 });
+
+// Delete review function
+function deleteReview(productId) {
+    if (!confirm('Bạn có chắc chắn muốn xóa đánh giá này không? Hành động này không thể hoàn tác.')) {
+        return;
+    }
+
+    fetch(`{{ url("product") }}/${productId}/review`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('HTTP error! status: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            // Reload page after successful deletion
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showAlert('error', data.message || 'Có lỗi xảy ra khi xóa đánh giá!');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting review:', error);
+        showAlert('error', 'Có lỗi xảy ra khi xóa đánh giá. Vui lòng thử lại!');
+    });
+}
 </script>
 
 @include('template/footer')

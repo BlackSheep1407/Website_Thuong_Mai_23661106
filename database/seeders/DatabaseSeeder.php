@@ -19,5 +19,10 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Seed website settings and sliders
+        $this->call([
+            WebsiteSeeder::class,
+        ]);
     }
 }

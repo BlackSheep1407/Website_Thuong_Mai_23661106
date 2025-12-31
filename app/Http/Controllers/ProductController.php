@@ -110,7 +110,14 @@ class ProductController extends Controller
             ->first();
 
         if ($existingReview) {
-            return response()->json(['success' => false, 'message' => 'Bạn đã đánh giá sản phẩm này rồi']);
+            // Update existing review
+            $existingReview->update([
+                'rating' => $request->rating,
+                'comment' => $request->comment,
+                'updated_at' => now(),
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Đánh giá của bạn đã được cập nhật!']);
         }
 
         // Create new review
@@ -123,6 +130,69 @@ class ProductController extends Controller
         ]);
 
         return response()->json(['success' => true, 'message' => 'Cảm ơn bạn đã đánh giá sản phẩm!']);
+    }
+
+    // Update review method
+    public function updateReview(Request $request, $productId)
+    {
+        $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'required|string|min:10|max:1000',
+        ]);
+
+        $user = session('user');
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Vui lòng đăng nhập để cập nhật đánh giá']);
+        }
+
+        $userId = is_array($user) ? ($user['id'] ?? ($user[0]['id'] ?? null)) : null;
+        if (!$userId) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy thông tin người dùng']);
+        }
+
+        // Find and update existing review
+        $review = ProductReview::where('user_id', $userId)
+            ->where('product_id', $productId)
+            ->first();
+
+        if (!$review) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy đánh giá để cập nhật']);
+        }
+
+        $review->update([
+            'rating' => $request->rating,
+            'comment' => $request->comment,
+            'updated_at' => now(),
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Đánh giá của bạn đã được cập nhật!']);
+    }
+
+    // Delete review method
+    public function deleteReview(Request $request, $productId)
+    {
+        $user = session('user');
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Vui lòng đăng nhập để xóa đánh giá']);
+        }
+
+        $userId = is_array($user) ? ($user['id'] ?? ($user[0]['id'] ?? null)) : null;
+        if (!$userId) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy thông tin người dùng']);
+        }
+
+        // Find and delete existing review
+        $review = ProductReview::where('user_id', $userId)
+            ->where('product_id', $productId)
+            ->first();
+
+        if (!$review) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy đánh giá để xóa']);
+        }
+
+        $review->delete();
+
+        return response()->json(['success' => true, 'message' => 'Đánh giá của bạn đã được xóa thành công!']);
     }
 
     public function getReviews($productId)

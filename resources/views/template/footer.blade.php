@@ -109,6 +109,9 @@
 <!-- Font Awesome for social icons -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
+<!-- Load cart.js on all pages for cart functionality -->
+<script src="{{ asset('main_home/js/cart.js') }}"></script>
+
 <style>
 footer a:hover {
     color: #4CAF50 !important;

@@ -3,18 +3,111 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\ProductModel; // your product model
-use Illuminate\Support\Facades\Session;
-
+use App\Models\ProductModel;
+use App\Models\CartModel;
+use App\Models\CartItemModel;
 class CartController extends Controller
 {
     private function getUserCart()
     {
+        $user = session('user');
+
+        // If user is logged in, get cart from database
+        if ($user) {
+            $userId = null;
+            if (is_array($user)) {
+                if (isset($user['user_id'])) {
+                    $userId = $user['user_id'];
+                } elseif (isset($user['id'])) {
+                    $userId = $user['id'];
+                } elseif (isset($user[0]) && is_array($user[0])) {
+                    $userId = $user[0]['user_id'] ?? $user[0]['id'] ?? null;
+                }
+            }
+
+            if ($userId) {
+                $cart = CartModel::where('user_id', $userId)->first();
+                if ($cart) {
+                    $items = CartItemModel::where('cart_id', $cart->id)->with('product')->get();
+                    $cartData = [];
+                    foreach ($items as $item) {
+                        $cartData[$item->product_id] = [
+                            'id' => $item->product_id,
+                            'name' => $item->product->product_name,
+                            'price' => $item->product->product_price,
+                            'image' => $item->product->product_img,
+                            'category' => $item->product->category->category_name ?? '',
+                            'qty' => $item->qty
+                        ];
+                    }
+                    return $cartData;
+                }
+            }
+        }
+
+        // For guests or if no database cart, use session
         return session('cart', []);
     }
 
     private function saveUserCart($cartData)
     {
+        $user = session('user');
+
+        // If user is logged in, save to database
+        if ($user) {
+            $userId = null;
+            if (is_array($user)) {
+                if (isset($user['user_id'])) {
+                    $userId = $user['user_id'];
+                } elseif (isset($user['id'])) {
+                    $userId = $user['id'];
+                } elseif (isset($user[0]) && is_array($user[0])) {
+                    $userId = $user[0]['user_id'] ?? $user[0]['id'] ?? null;
+                }
+            }
+
+            if ($userId) {
+                $cart = CartModel::firstOrCreate(['user_id' => $userId]);
+
+                // Get existing cart items
+                $existingItems = CartItemModel::where('cart_id', $cart->id)
+                    ->pluck('qty', 'product_id')
+                    ->toArray();
+
+                $currentProductIds = array_keys($cartData);
+
+                // Update existing items or create new ones
+                foreach ($cartData as $productId => $item) {
+                    if (isset($existingItems[$productId])) {
+                        // Update quantity if different
+                        if ($existingItems[$productId] != $item['qty']) {
+                            CartItemModel::where('cart_id', $cart->id)
+                                ->where('product_id', $productId)
+                                ->update(['qty' => $item['qty']]);
+                        }
+                    } else {
+                        // Create new item
+                        CartItemModel::create([
+                            'cart_id' => $cart->id,
+                            'product_id' => $productId,
+                            'qty' => $item['qty']
+                        ]);
+                    }
+                }
+
+                // Remove items that are no longer in cart
+                $itemsToRemove = array_diff(array_keys($existingItems), $currentProductIds);
+                if (!empty($itemsToRemove)) {
+                    CartItemModel::where('cart_id', $cart->id)
+                        ->whereIn('product_id', $itemsToRemove)
+                        ->delete();
+                }
+
+                return;
+            }
+        }
+
+        // For guests, save to session
         session()->put('cart', $cartData);
     }
 

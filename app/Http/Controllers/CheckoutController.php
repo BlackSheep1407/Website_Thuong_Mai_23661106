@@ -6,9 +6,79 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductModel;
+use App\Models\CartModel;
+use App\Models\CartItemModel;
 
 class CheckoutController extends Controller
 {
+    private function getUserCart()
+    {
+        $user = session('user');
+
+        // If user is logged in, get cart from database
+        if ($user) {
+            $userId = null;
+            if (is_array($user)) {
+                if (isset($user['user_id'])) {
+                    $userId = $user['user_id'];
+                } elseif (isset($user['id'])) {
+                    $userId = $user['id'];
+                } elseif (isset($user[0]) && is_array($user[0])) {
+                    $userId = $user[0]['user_id'] ?? $user[0]['id'] ?? null;
+                }
+            }
+
+            if ($userId) {
+                $cart = CartModel::where('user_id', $userId)->first();
+                if ($cart) {
+                    $items = CartItemModel::where('cart_id', $cart->id)->with('product')->get();
+                    $cartData = [];
+                    foreach ($items as $item) {
+                        $cartData[$item->product_id] = [
+                            'id' => $item->product_id,
+                            'name' => $item->product->product_name,
+                            'price' => $item->product->product_price,
+                            'image' => $item->product->product_img,
+                            'category' => $item->product->category->category_name ?? '',
+                            'qty' => $item->qty
+                        ];
+                    }
+                    return $cartData;
+                }
+            }
+        }
+
+        // For guests or if no database cart, use session (though checkout requires login)
+        return session('cart', []);
+    }
+
+    private function clearUserCart()
+    {
+        $user = session('user');
+        if (!$user) {
+            return;
+        }
+
+        $userId = null;
+        if (is_array($user)) {
+            if (isset($user['user_id'])) {
+                $userId = $user['user_id'];
+            } elseif (isset($user['id'])) {
+                $userId = $user['id'];
+            } elseif (isset($user[0]) && is_array($user[0])) {
+                $userId = $user[0]['user_id'] ?? $user[0]['id'] ?? null;
+            }
+        }
+
+        if (!$userId) {
+            return;
+        }
+
+        $cart = CartModel::where('user_id', $userId)->first();
+        if ($cart) {
+            CartItemModel::where('cart_id', $cart->id)->delete();
+        }
+    }
     // Hiển thị form checkout (wrapper)
     public function index()
     {
@@ -43,7 +113,8 @@ class CheckoutController extends Controller
             }
         }
 
-        $cart = session('cart', []);
+        // Get cart from database
+        $cart = $this->getUserCart();
         if (empty($cart)) {
             return redirect()->route('home')->with('error', 'Giỏ hàng đang trống!');
         }
@@ -79,8 +150,8 @@ class CheckoutController extends Controller
     public function processCheckout(Request $request)
     {
         try {
-            // Read cart from session
-            $cart = session('cart', []);
+            // Read cart from database
+            $cart = $this->getUserCart();
             if (empty($cart)) {
                 return response()->json(['error' => 'Giỏ hàng đang trống'], 400);
             }
@@ -176,7 +247,7 @@ class CheckoutController extends Controller
             }
 
             // clear cart
-            session()->forget('cart');
+            $this->clearUserCart();
 
             // return JSON summary
             return response()->json([

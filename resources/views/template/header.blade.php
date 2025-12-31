@@ -23,8 +23,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>2Tfresh Market- Web bán trái cây tươi</title>
   <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="{{ asset('main_home/img/logo/favicon.ico') }}">
-  <link rel="shortcut icon" type="image/x-icon" href="{{ asset('main_home/img/logo/favicon.ico') }}">
+  @php
+      $favicon = \App\Models\WebsiteSetting::where('setting_key', 'favicon')->first();
+  @endphp
+  <link rel="icon" type="image/x-icon" href="{{ $favicon ? asset('storage/' . $favicon->setting_value) . '?v=' . time() : asset('main_home/img/logo/favicon.ico') }}">
+  <link rel="shortcut icon" type="image/x-icon" href="{{ $favicon ? asset('storage/' . $favicon->setting_value) . '?v=' . time() : asset('main_home/img/logo/favicon.ico') }}">
   <!-- CSS chung cho trang web -->
   <link rel="stylesheet" href="{{ asset('main_home/css/style.css') }}">
   <!-- css Khôi phục tài khoản -->
@@ -47,7 +50,10 @@
   <header>
     <div class="logo">
       <a href="{{ route('home') }}#top" onclick="scrollToTop()">
-        <img src="{{ asset('main_home/img/logo/logo.png') }}" alt="Logo">
+        @php
+          $logo = \App\Models\WebsiteSetting::where('setting_key', 'logo')->first();
+        @endphp
+        <img src="{{ $logo ? asset($logo->setting_value) : asset('main_home/img/logo/logo.png') }}" alt="Logo">
       </a>
     </div>
     <nav>
@@ -91,18 +97,38 @@
     <i class="bi bi-basket-fill text-lg"></i>
 </button> --}}
 @php
+  // Use the same logic as CartController::getUserCart()
   $user = session('user');
-  // hỗ trợ cả hai dạng session: ['id'=>..] hoặc [[..]]
-  if (is_array($user) && isset($user[0]) && is_array($user[0])) {
-    $userId = $user[0]['id'] ?? null;
-  } elseif (is_array($user)) {
-    $userId = $user['id'] ?? null;
+
+  // If user is logged in, get cart from database
+  if ($user) {
+      $userId = null;
+      if (is_array($user)) {
+          if (isset($user['user_id'])) {
+              $userId = $user['user_id'];
+          } elseif (isset($user['id'])) {
+              $userId = $user['id'];
+          } elseif (isset($user[0]) && is_array($user[0])) {
+              $userId = $user[0]['user_id'] ?? $user[0]['id'] ?? null;
+          }
+      }
+
+      if ($userId) {
+          $cartModel = \App\Models\CartModel::where('user_id', $userId)->first();
+          if ($cartModel) {
+              $cartItems = \App\Models\CartItemModel::where('cart_id', $cartModel->id)->get();
+              $cartCount = $cartItems->sum('qty');
+          } else {
+              $cartCount = 0;
+          }
+      } else {
+          $cartCount = 0;
+      }
   } else {
-    $userId = null;
+      // For guests, use session
+      $cart = session('cart', []);
+      $cartCount = array_sum(array_column($cart, 'qty')) ?: 0;
   }
-  $cartKey = $userId ? 'cart_user_' . $userId : 'cart_guest';
-  $cart = session($cartKey, []);
-  $cartCount = is_array($cart) ? count($cart) : 0;
 @endphp
 
 <button title="Giỏ hàng" type="button"
@@ -161,7 +187,50 @@
         
     </nav>
   </header>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Giỏ hàng modal -->
+<div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+    <div class="modal-header" style="
+            background-color: #FFA451;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+        ">
+        <h5 class="modal-title d-flex align-items-center">
+            <i class="bi bi-basket2-fill" style="margin-right:8px;"></i>
+            Giỏ hàng
+            <span id="cartModalCountRight" class="fw-bold ms-2" style="font-size:1rem;">(0)</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+      <div class="modal-body" id="cartItemsContainer" style="background-color: #fff8f0; min-height: 200px;">
+        <!-- Cart items sẽ được JS render ở đây -->
+      </div>
+      <div class="modal-footer" style="background-color: #F7F1E5;">
+        <h5 id="totalPriceContainer">Tổng tiền: 0 VNĐ</h5>
+
+        <a href="#" id="checkoutBtn" class="btn btn-success" style="background-color: #28a745; border:none;">Thanh toán</a>
+        {{-- <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button> --}}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed top-0 end-0 p-3" style="z-index:1080; margin-top:80px; background-color#E1D0B3">
+  <div id="cartToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">Đã thêm sản phẩm vào giỏ hàng!</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
 
   <!-- Scroll functionality -->
   <script>
