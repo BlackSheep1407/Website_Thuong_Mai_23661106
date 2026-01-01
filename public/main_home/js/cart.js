@@ -49,18 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (data.redirect) {
           // Show beautiful confirmation modal
-          await new Promise((resolve) => {
-            showCheckoutConfirmModal(
-              'Bạn cần đăng nhập để thanh toán sản phẩm trong giỏ hàng.',
-              () => {
-                window.location.href = data.redirect;
-                resolve();
-              },
-              () => {
-                resolve(); // Just close modal, stay in cart
-              }
-            );
-          });
+          const confirmed = await showCheckoutConfirmModal('Bạn cần đăng nhập để thanh toán sản phẩm trong giỏ hàng.');
+          if (confirmed) {
+            window.location.href = data.redirect;
+          }
           throw new Error('Redirecting to login');
         }
       }
@@ -76,18 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (data.redirect) {
           // Show beautiful confirmation modal
-          await new Promise((resolve) => {
-            showCheckoutConfirmModal(
-              'Bạn cần cập nhật thông tin cá nhân (họ tên và địa chỉ) để thanh toán.',
-              () => {
-                window.location.href = data.redirect;
-                resolve();
-              },
-              () => {
-                resolve(); // Just close modal, stay in cart
-              }
-            );
-          });
+          const confirmed = await showCheckoutConfirmModal('Bạn cần cập nhật thông tin cá nhân (họ tên và địa chỉ) để thanh toán.');
+          if (confirmed) {
+            window.location.href = data.redirect;
+          }
           throw new Error('Redirecting to profile');
         }
       }
@@ -278,10 +262,100 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Show confirmation modal for removing items
+  function showRemoveConfirmModal(message) {
+    return new Promise((resolve) => {
+      // If modal already exists, remove it first
+      const existingModal = document.getElementById('removeConfirmModal');
+      if (existingModal) {
+        existingModal.remove();
+      }
+
+      // Create a simple overlay
+      const overlay = document.createElement('div');
+      overlay.id = 'removeConfirmModal';
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1060;
+      `;
+
+      overlay.innerHTML = `
+        <div style="background: white; border-radius: 8px; padding: 20px; max-width: 380px; width: 90%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <div style="display: flex; align-items: center; margin-bottom: 15px; padding: 15px 20px; background-color: #FFA451; color: #fff; border-radius: 8px 8px 0 0;">
+            <i class="fas fa-trash-alt text-danger me-2 fs-4"></i>
+            <h5 style="margin: 0; color: #fff;">Xác nhận xóa</h5>
+            <button type="button" class="btn-close btn-close-white ms-auto" id="removeCloseBtn" aria-label="Close" style="background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; padding: 8px;"></button>
+          </div>
+          <div style="text-align: center; margin-bottom: 20px;">
+            <div style="margin-bottom: 15px;">
+              <i class="fas fa-exclamation-triangle text-warning fs-1"></i>
+            </div>
+            <p style="margin: 0; font-size: 16px; color: #495057;">${message}</p>
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: center;">
+            <button type="button" class="btn btn-danger px-4" id="removeConfirmBtn">
+              <i class="fas fa-trash me-2"></i>Xóa
+            </button>
+            <button type="button" class="btn btn-secondary px-4" id="removeCancelBtn">
+              <i class="fas fa-times me-2"></i>Hủy bỏ
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      let resolved = false;
+
+      // Get button references
+      const confirmBtn = overlay.querySelector('#removeConfirmBtn');
+      const cancelBtn = overlay.querySelector('#removeCancelBtn');
+      const closeBtn = overlay.querySelector('#removeCloseBtn');
+
+      // Helper to clean up and resolve
+      const cleanup = (result) => {
+        if (resolved) return;
+        resolved = true;
+        overlay.remove();
+        resolve(result);
+      };
+
+      // Add event listeners
+      confirmBtn.addEventListener('click', () => cleanup(true));
+      cancelBtn.addEventListener('click', () => cleanup(false));
+      closeBtn.addEventListener('click', () => cleanup(false));
+
+      // Close on Escape key
+      const escHandler = (e) => {
+        if (e.key === 'Escape') {
+          document.removeEventListener('keydown', escHandler);
+          cleanup(false);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+
+      // Close on backdrop click
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          cleanup(false);
+        }
+      });
+    });
+  }
+
   // remove item
   async function removeItem(productId, sourceBtn = null) {
-    // confirm once
-    if (!confirm('Bạn chắc chắn muốn xóa sản phẩm này?')) return;
+    // Show beautiful confirmation modal
+    const confirmed = await showRemoveConfirmModal('Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?');
+    if (!confirmed) return;
 
     const url = `/cart/delete/${productId}`;
     if (sourceBtn) tempDisable(sourceBtn, 600);
@@ -330,78 +404,91 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Show beautiful confirmation modal for checkout requirements
-  function showCheckoutConfirmModal(message, confirmCallback, cancelCallback = null) {
-    // If modal already exists, remove it first
-    const existingModal = document.getElementById('checkoutConfirmModal');
-    if (existingModal) {
-      existingModal.remove();
-    }
+  function showCheckoutConfirmModal(message) {
+    return new Promise((resolve) => {
+      // If modal already exists, remove it first
+      const existingModal = document.getElementById('checkoutConfirmModal');
+      if (existingModal) {
+        existingModal.remove();
+      }
 
-    const modal = document.createElement('div');
-    modal.id = 'checkoutConfirmModal';
-    modal.className = 'modal fade show';
-    modal.style.display = 'block';
-    modal.style.zIndex = '1060'; // Higher than cart modal
-    modal.innerHTML = `
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header bg-warning text-dark">
-            <h5 class="modal-title">
-              <i class="fas fa-exclamation-triangle me-2"></i>Yêu cầu thanh toán
-            </h5>
-            <button type="button" class="btn-close" onclick="this.closest('.modal').remove()"></button>
+      // Create a simple overlay instead of Bootstrap modal to avoid backdrop conflicts
+      const overlay = document.createElement('div');
+      overlay.id = 'checkoutConfirmModal';
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1060;
+      `;
+
+      overlay.innerHTML = `
+        <div style="background: white; border-radius: 8px; padding: 20px; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <div style="display: flex; align-items: center; margin-bottom: 15px; padding: 15px 20px; background-color: #FFA451; color: #fff; border-radius: 8px 8px 0 0;">
+            <i class="fas fa-exclamation-triangle text-warning me-2 fs-4"></i>
+            <h5 style="margin: 0; color: #fff;">Yêu cầu thanh toán</h5>
+            <button type="button" class="btn-close btn-close-white ms-auto" id="checkoutCloseBtn" aria-label="Close" style="background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; padding: 8px;"></button>
           </div>
-          <div class="modal-body text-center">
-            <div class="mb-3">
-              <i class="fas fa-info-circle text-info fs-1 mb-3"></i>
+          <div style="text-align: center; margin-bottom: 20px;">
+            <div style="margin-bottom: 15px;">
+              <i class="fas fa-info-circle text-info fs-1"></i>
             </div>
-            <p class="mb-4 fs-5">${message}</p>
-            <div class="d-flex gap-3 justify-content-center">
-              <button id="checkoutConfirmBtn" class="btn btn-success px-4">
-                <i class="fas fa-check me-2"></i>Đồng ý
-              </button>
-              <button id="checkoutCancelBtn" class="btn btn-secondary px-4" onclick="this.closest('.modal').remove()">
-                <i class="fas fa-times me-2"></i>Hủy bỏ
-              </button>
-            </div>
+            <p style="margin: 0; font-size: 18px; color: #495057;">${message}</p>
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: center;">
+            <button type="button" class="btn btn-success px-4" id="checkoutConfirmBtn">
+              <i class="fas fa-check me-2"></i>Đồng ý
+            </button>
+            <button type="button" class="btn btn-secondary px-4" id="checkoutCancelBtn">
+              <i class="fas fa-times me-2"></i>Hủy bỏ
+            </button>
           </div>
         </div>
-      </div>
-    `;
+      `;
 
-    // Add modal backdrop
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop fade show';
-    backdrop.style.zIndex = '1059'; // Just below modal
-    backdrop.onclick = () => modal.remove();
+      document.body.appendChild(overlay);
 
-    document.body.appendChild(backdrop);
-    document.body.appendChild(modal);
+      let resolved = false;
 
-    // Add event listeners
-    document.getElementById('checkoutConfirmBtn').addEventListener('click', () => {
-      modal.remove();
-      backdrop.remove();
-      if (confirmCallback) confirmCallback();
-    });
+      // Get button references
+      const confirmBtn = overlay.querySelector('#checkoutConfirmBtn');
+      const cancelBtn = overlay.querySelector('#checkoutCancelBtn');
+      const closeBtn = overlay.querySelector('#checkoutCloseBtn');
 
-    document.getElementById('checkoutCancelBtn').addEventListener('click', () => {
-      modal.remove();
-      backdrop.remove();
-      if (cancelCallback) cancelCallback();
-    });
+      // Helper to clean up and resolve
+      const cleanup = (result) => {
+        if (resolved) return;
+        resolved = true;
+        overlay.remove();
+        resolve(result);
+      };
 
-    // Close on Escape key
-    const closeModal = () => {
-      modal.remove();
-      backdrop.remove();
-    };
+      // Add event listeners
+      confirmBtn.addEventListener('click', () => cleanup(true));
+      cancelBtn.addEventListener('click', () => cleanup(false));
+      closeBtn.addEventListener('click', () => cleanup(false));
 
-    document.addEventListener('keydown', function escHandler(e) {
-      if (e.key === 'Escape') {
-        closeModal();
-        document.removeEventListener('keydown', escHandler);
-      }
+      // Close on Escape key
+      const escHandler = (e) => {
+        if (e.key === 'Escape') {
+          document.removeEventListener('keydown', escHandler);
+          cleanup(false);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+
+      // Close on backdrop click
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          cleanup(false);
+        }
+      });
     });
   }
 
