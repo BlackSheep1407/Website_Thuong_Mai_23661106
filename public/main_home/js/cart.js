@@ -288,25 +288,32 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       overlay.innerHTML = `
-        <div style="background: white; border-radius: 8px; padding: 20px; max-width: 380px; width: 90%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-          <div style="display: flex; align-items: center; margin-bottom: 15px; padding: 15px 20px; background-color: #FFA451; color: #fff; border-radius: 8px 8px 0 0;">
-            <i class="fas fa-trash-alt text-danger me-2 fs-4"></i>
-            <h5 style="margin: 0; color: #fff;">Xác nhận xóa</h5>
-            <button type="button" class="btn-close btn-close-white ms-auto" id="removeCloseBtn" aria-label="Close" style="background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; padding: 8px;"></button>
-          </div>
-          <div style="text-align: center; margin-bottom: 20px;">
-            <div style="margin-bottom: 15px;">
-              <i class="fas fa-exclamation-triangle text-warning fs-1"></i>
+        <div style="background: white; border-radius: 16px; padding: 0; max-width: 420px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06); overflow: hidden; transform: scale(0.95); transition: transform 0.2s ease-out;">
+          <div style="display: flex; align-items: center; padding: 20px 24px; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: #fff; position: relative;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background-color: rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; margin-right: 16px;">
+              <i class="fas fa-trash-alt text-white fs-5"></i>
             </div>
-            <p style="margin: 0; font-size: 16px; color: #495057;">${message}</p>
+            <div>
+              <h5 style="margin: 0; color: #fff; font-size: 18px; font-weight: 600;">Xác nhận xóa</h5>
+              <p style="margin: 4px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;">Hành động này không thể hoàn tác</p>
+            </div>
+            <button type="button" class="btn-close btn-close-white ms-auto" id="removeCloseBtn" aria-label="Close" style="background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; padding: 10px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;"></button>
           </div>
-          <div style="display: flex; gap: 10px; justify-content: center;">
-            <button type="button" class="btn btn-danger px-4" id="removeConfirmBtn">
-              <i class="fas fa-trash me-2"></i>Xóa
-            </button>
-            <button type="button" class="btn btn-secondary px-4" id="removeCancelBtn">
-              <i class="fas fa-times me-2"></i>Hủy bỏ
-            </button>
+          <div style="padding: 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <div style="width: 64px; height: 64px; border-radius: 50%; background-color: #fff3cd; border: 3px solid #ffeaa7; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+                <i class="fas fa-exclamation-triangle text-warning fs-2"></i>
+              </div>
+              <p style="margin: 0; font-size: 16px; color: #495057; line-height: 1.5;">${message}</p>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+              <button type="button" class="btn px-4 py-2" id="removeCancelBtn" style="border: 2px solid #6c757d; color: #6c757d; background-color: transparent; border-radius: 8px; font-weight: 500; transition: all 0.2s ease;">
+                <i class="fas fa-times me-2"></i>Hủy bỏ
+              </button>
+              <button type="button" class="btn px-4 py-2" id="removeConfirmBtn" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; border: none; border-radius: 8px; font-weight: 500; box-shadow: 0 4px 6px rgba(220, 53, 69, 0.2); transition: all 0.2s ease;">
+                <i class="fas fa-trash me-2"></i>Xóa
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -429,25 +436,32 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       overlay.innerHTML = `
-        <div style="background: white; border-radius: 8px; padding: 20px; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-          <div style="display: flex; align-items: center; margin-bottom: 15px; padding: 15px 20px; background-color: #FFA451; color: #fff; border-radius: 8px 8px 0 0;">
-            <i class="fas fa-exclamation-triangle text-warning me-2 fs-4"></i>
-            <h5 style="margin: 0; color: #fff;">Yêu cầu thanh toán</h5>
-            <button type="button" class="btn-close btn-close-white ms-auto" id="checkoutCloseBtn" aria-label="Close" style="background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; padding: 8px;"></button>
-          </div>
-          <div style="text-align: center; margin-bottom: 20px;">
-            <div style="margin-bottom: 15px;">
-              <i class="fas fa-info-circle text-info fs-1"></i>
+        <div style="background: white; border-radius: 16px; padding: 0; max-width: 420px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06); overflow: hidden; transform: scale(0.95); transition: transform 0.2s ease-out;">
+          <div style="display: flex; align-items: center; padding: 20px 24px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: #fff; position: relative;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background-color: rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; margin-right: 16px;">
+              <i class="fas fa-shopping-cart text-white fs-5"></i>
             </div>
-            <p style="margin: 0; font-size: 18px; color: #495057;">${message}</p>
+            <div>
+              <h5 style="margin: 0; color: #fff; font-size: 18px; font-weight: 600;">Yêu cầu thanh toán</h5>
+              <p style="margin: 4px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;">Vui lòng đăng nhập để tiếp tục</p>
+            </div>
+            <button type="button" class="btn-close btn-close-white ms-auto" id="checkoutCloseBtn" aria-label="Close" style="background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; padding: 10px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;"></button>
           </div>
-          <div style="display: flex; gap: 10px; justify-content: center;">
-            <button type="button" class="btn btn-success px-4" id="checkoutConfirmBtn">
-              <i class="fas fa-check me-2"></i>Đồng ý
-            </button>
-            <button type="button" class="btn btn-secondary px-4" id="checkoutCancelBtn">
-              <i class="fas fa-times me-2"></i>Hủy bỏ
-            </button>
+          <div style="padding: 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <div style="width: 64px; height: 64px; border-radius: 50%; background-color: #d1ecf1; border: 3px solid #bee5eb; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+                <i class="fas fa-info-circle text-info fs-2"></i>
+              </div>
+              <p style="margin: 0; font-size: 16px; color: #495057; line-height: 1.5;">${message}</p>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+              <button type="button" class="btn px-4 py-2" id="checkoutCancelBtn" style="border: 2px solid #6c757d; color: #6c757d; background-color: transparent; border-radius: 8px; font-weight: 500; transition: all 0.2s ease;">
+                <i class="fas fa-times me-2"></i>Hủy bỏ
+              </button>
+              <button type="button" class="btn px-4 py-2" id="checkoutConfirmBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; border-radius: 8px; font-weight: 500; box-shadow: 0 4px 6px rgba(40, 167, 69, 0.2); transition: all 0.2s ease;">
+                <i class="fas fa-check me-2"></i>Đồng ý
+              </button>
+            </div>
           </div>
         </div>
       `;
