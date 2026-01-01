@@ -4,6 +4,82 @@
 {{-- Model giỏ hàng --}}
 <body>
 
+{{-- Login Modal for Checkout --}}
+@if(session('show_login_modal'))
+<div class="modal fade show" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="false" style="display: block;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="loginModalLabel">
+                    <i class="fas fa-user-circle me-2"></i>Yêu cầu đăng nhập
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="closeLoginModal()"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    {{ session('login_message', 'Vui lòng đăng nhập để tiếp tục thanh toán') }}
+                </div>
+
+                <form id="loginForm" method="POST" action="/xu-ly-dang-nhap">
+                    @csrf
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Tên đăng nhập</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Mật khẩu</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeLoginModal()">
+                            <i class="fas fa-times me-2"></i>Hủy bỏ
+                        </button>
+                    </div>
+                </form>
+
+                <hr>
+                <div class="text-center">
+                    <p class="mb-2">Chưa có tài khoản?</p>
+                    <a href="{{ route('register') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-user-plus me-1"></i>Đăng ký ngay
+                    </a>
+                    <br>
+                    <a href="{{ route('password.forgot') }}" class="text-decoration-none mt-2 d-inline-block">
+                        <small>Quên mật khẩu?</small>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-backdrop fade show" onclick="closeLoginModal()"></div>
+
+<script>
+function closeLoginModal() {
+    document.getElementById('loginModal').style.display = 'none';
+    document.querySelector('.modal-backdrop').style.display = 'none';
+    // Clear the session variable by redirecting to home without the modal
+    window.location.href = '{{ route("home") }}';
+}
+</script>
+
+<style>
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+}
+</style>
+@endif
+
 
 
 

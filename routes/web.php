@@ -609,11 +609,28 @@ Route::prefix('cart')->group(function () {
     Route::get('/content', [CartController::class, 'getCart'])->name('cart.get');
 });
 
-Route::get('/checkout', function () {
+Route::get('/checkout', function (Illuminate\Http\Request $request) {
     // Check custom session auth
     $user = session('user');
     if (!$user) {
-        return redirect('/dang-nhap')->with('error', 'Vui lòng đăng nhập trước khi thanh toán!');
+        // Instead of redirecting, show home page with login modal
+        $categories = \App\Models\CategoryModel::with('products')->get();
+        $searchQuery = $request->get('search');
+        $searchResults = null;
+
+        if ($searchQuery) {
+            $searchResults = \App\Models\ProductModel::where('product_name', 'LIKE', '%' . $searchQuery . '%')
+                ->orWhere('product_description', 'LIKE', '%' . $searchQuery . '%')
+                ->orWhereHas('category', function($query) use ($searchQuery) {
+                    $query->where('category_name', 'LIKE', '%' . $searchQuery . '%');
+                })
+                ->with('category')
+                ->get();
+        }
+
+        return view('home', compact('categories', 'searchQuery', 'searchResults'))
+               ->with('show_login_modal', true)
+               ->with('login_message', 'Vui lòng đăng nhập để tiếp tục thanh toán');
     }
 
     // Check if user has complete profile information

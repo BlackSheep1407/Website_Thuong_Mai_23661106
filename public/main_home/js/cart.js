@@ -41,16 +41,67 @@ document.addEventListener('DOMContentLoaded', () => {
       body: JSON.stringify(body)
     });
 
-    // Auth redirect or unauthorized
-    if (res.status === 401 || res.redirected) {
-      // show login flow
+    // Handle different response types
+    if (res.status === 401) {
+      // Authentication required
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data.redirect) {
+          // Show beautiful confirmation modal
+          await new Promise((resolve) => {
+            showCheckoutConfirmModal(
+              'Bạn cần đăng nhập để thanh toán sản phẩm trong giỏ hàng.',
+              () => {
+                window.location.href = data.redirect;
+                resolve();
+              },
+              () => {
+                resolve(); // Just close modal, stay in cart
+              }
+            );
+          });
+          throw new Error('Redirecting to login');
+        }
+      }
+      // Show login modal
       showLoginRequired();
       throw new Error('Unauthorized');
     }
 
+    if (res.status === 400) {
+      // Bad request - might be incomplete profile
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data.redirect) {
+          // Show beautiful confirmation modal
+          await new Promise((resolve) => {
+            showCheckoutConfirmModal(
+              'Bạn cần cập nhật thông tin cá nhân (họ tên và địa chỉ) để thanh toán.',
+              () => {
+                window.location.href = data.redirect;
+                resolve();
+              },
+              () => {
+                resolve(); // Just close modal, stay in cart
+              }
+            );
+          });
+          throw new Error('Redirecting to profile');
+        }
+      }
+    }
+
     if (!res.ok) {
-      const t = await res.text();
-      throw new Error(`Server ${res.status}: ${t}`);
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `Server ${res.status}: Unknown error`);
+      } else {
+        const t = await res.text();
+        throw new Error(`Server ${res.status}: ${t}`);
+      }
     }
     return res.json();
   }
@@ -278,6 +329,82 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('closeLoginRequired').addEventListener('click', () => overlay.remove());
   }
 
+  // Show beautiful confirmation modal for checkout requirements
+  function showCheckoutConfirmModal(message, confirmCallback, cancelCallback = null) {
+    // If modal already exists, remove it first
+    const existingModal = document.getElementById('checkoutConfirmModal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'checkoutConfirmModal';
+    modal.className = 'modal fade show';
+    modal.style.display = 'block';
+    modal.style.zIndex = '1060'; // Higher than cart modal
+    modal.innerHTML = `
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-warning text-dark">
+            <h5 class="modal-title">
+              <i class="fas fa-exclamation-triangle me-2"></i>Yêu cầu thanh toán
+            </h5>
+            <button type="button" class="btn-close" onclick="this.closest('.modal').remove()"></button>
+          </div>
+          <div class="modal-body text-center">
+            <div class="mb-3">
+              <i class="fas fa-info-circle text-info fs-1 mb-3"></i>
+            </div>
+            <p class="mb-4 fs-5">${message}</p>
+            <div class="d-flex gap-3 justify-content-center">
+              <button id="checkoutConfirmBtn" class="btn btn-success px-4">
+                <i class="fas fa-check me-2"></i>Đồng ý
+              </button>
+              <button id="checkoutCancelBtn" class="btn btn-secondary px-4" onclick="this.closest('.modal').remove()">
+                <i class="fas fa-times me-2"></i>Hủy bỏ
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add modal backdrop
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop fade show';
+    backdrop.style.zIndex = '1059'; // Just below modal
+    backdrop.onclick = () => modal.remove();
+
+    document.body.appendChild(backdrop);
+    document.body.appendChild(modal);
+
+    // Add event listeners
+    document.getElementById('checkoutConfirmBtn').addEventListener('click', () => {
+      modal.remove();
+      backdrop.remove();
+      if (confirmCallback) confirmCallback();
+    });
+
+    document.getElementById('checkoutCancelBtn').addEventListener('click', () => {
+      modal.remove();
+      backdrop.remove();
+      if (cancelCallback) cancelCallback();
+    });
+
+    // Close on Escape key
+    const closeModal = () => {
+      modal.remove();
+      backdrop.remove();
+    };
+
+    document.addEventListener('keydown', function escHandler(e) {
+      if (e.key === 'Escape') {
+        closeModal();
+        document.removeEventListener('keydown', escHandler);
+      }
+    });
+  }
+
   // Event delegation for Add/Increase/Decrease/Remove
   document.addEventListener('click', (e) => {
     const addBtn = e.target.closest('.btn-add-to-cart');
@@ -352,7 +479,21 @@ document.addEventListener('DOMContentLoaded', () => {
         showCartToast('Đặt hàng thành công!');
       } catch (err) {
         console.error('checkout error', err);
-        alert('Thanh toán thất bại: ' + (err.message || 'Lỗi server'));
+
+        // Handle different types of errors gracefully
+        if (err.message.includes('Redirecting to login') || err.message.includes('Redirecting to profile')) {
+          // These are expected redirects, don't show ugly error messages
+          return;
+        }
+
+        // Show user-friendly error messages for other errors
+        if (err.message.includes('Server 422') || err.message.includes('Dữ liệu không hợp lệ')) {
+          alert('Vui lòng điền đầy đủ thông tin thanh toán!');
+        } else if (err.message.includes('Server 400')) {
+          alert('Có lỗi xảy ra. Vui lòng thử lại sau!');
+        } else {
+          alert('Thanh toán thất bại: ' + (err.message || 'Lỗi server'));
+        }
       } finally {
         checkoutBtn.disabled = false;
       }

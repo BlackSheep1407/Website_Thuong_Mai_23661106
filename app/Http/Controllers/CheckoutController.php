@@ -130,6 +130,61 @@ class CheckoutController extends Controller
 
             // If it's a JSON response (AJAX), return it
             if ($result instanceof \Illuminate\Http\JsonResponse) {
+                $data = $result->getData(true);
+
+                // Handle authentication error
+                if ($result->getStatusCode() === 401 && isset($data['redirect'])) {
+                    if ($request->ajax()) {
+                        // For AJAX requests, return the JSON response as-is
+                        return $result;
+                    } else {
+                        // For regular form submissions, show login modal on homepage
+                        $categories = \App\Models\CategoryModel::with('products')->get();
+                        $searchQuery = $request->get('search');
+                        $searchResults = null;
+
+                        if ($searchQuery) {
+                            $searchResults = \App\Models\ProductModel::where('product_name', 'LIKE', '%' . $searchQuery . '%')
+                                ->orWhere('product_description', 'LIKE', '%' . $searchQuery . '%')
+                                ->orWhereHas('category', function($query) use ($searchQuery) {
+                                    $query->where('category_name', 'LIKE', '%' . $searchQuery . '%');
+                                })
+                                ->with('category')
+                                ->get();
+                        }
+
+                        return view('home', compact('categories', 'searchQuery', 'searchResults'))
+                               ->with('show_login_modal', true)
+                               ->with('login_message', $data['error']);
+                    }
+                }
+
+                // Handle incomplete profile error
+                if ($result->getStatusCode() === 400 && isset($data['redirect']) && $data['redirect'] === '/profile') {
+                    if ($request->ajax()) {
+                        // For AJAX requests, return JSON with redirect URL
+                        return response()->json([
+                            'error' => $data['error'],
+                            'redirect' => '/profile'
+                        ], 400);
+                    } else {
+                        // For regular form submissions, redirect to profile
+                        return redirect('/profile')->with('error', $data['error']);
+                    }
+                }
+
+                // Handle validation errors
+                if ($result->getStatusCode() === 422) {
+                    if ($request->ajax()) {
+                        // For AJAX requests, return the JSON error
+                        return $result;
+                    } else {
+                        // For regular form submissions, redirect back with error
+                        return redirect()->route('checkout')->with('error', $data['error']);
+                    }
+                }
+
+                // Handle other JSON responses
                 return $result;
             }
 
@@ -142,6 +197,9 @@ class CheckoutController extends Controller
             return redirect()->route('checkout')->with('error', $result['error'] ?? 'Có lỗi xảy ra');
 
         } catch (\Exception $e) {
+            if ($request->ajax()) {
+                return response()->json(['error' => 'Lỗi: ' . $e->getMessage()], 500);
+            }
             return redirect()->route('checkout')->with('error', 'Lỗi: ' . $e->getMessage());
         }
     }
@@ -177,16 +235,29 @@ class CheckoutController extends Controller
                 }
             }
 
-            // get customer info from user if logged in
+            // Check authentication first
+            if (!$sessUser) {
+                // User not logged in - redirect to login page
+                return response()->json([
+                    'error' => 'Vui lòng đăng nhập để tiếp tục thanh toán',
+                    'redirect' => '/dang-nhap'
+                ], 401);
+            }
+
+            // Check if user has complete profile information
             if ($userId) {
                 try {
                     $user = \App\Models\Users::find($userId);
-                    if ($user) {
-                        $customerName = $user->user_fullname ?: $customerName;
-                        $customerEmail = $user->user_email ?: $customerEmail;
-                        $customerPhone = $user->user_phone ?: $customerPhone;
-                        $customerAddress = $user->user_address ?: $customerAddress;
+                    if ($user && (empty($user->user_fullname) || empty($user->user_address))) {
+                        return response()->json([
+                            'error' => 'Vui lòng cập nhật đầy đủ thông tin cá nhân (họ tên và địa chỉ) trước khi thanh toán!',
+                            'redirect' => '/profile'
+                        ], 400);
                     }
+                    $customerName = $user->user_fullname ?: $customerName;
+                    $customerEmail = $user->user_email ?: $customerEmail;
+                    $customerPhone = $user->user_phone ?: $customerPhone;
+                    $customerAddress = $user->user_address ?: $customerAddress;
                 } catch (\Exception $e) {
                     \Log::warning('Could not find user for checkout: ' . $e->getMessage());
                 }
