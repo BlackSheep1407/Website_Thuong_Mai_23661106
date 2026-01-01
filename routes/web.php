@@ -443,9 +443,7 @@ Route::post('/admin/avatar', function (Illuminate\Http\Request $request) {
         return response()->json(['success' => false, 'message' => 'Có lỗi xảy ra khi tải ảnh lên']);
     }
 })->name('admin.avatar');
-Route::get('/', function () {
-    return view('welcome');
-});
+
 // ----------------------------------------------------
 // người dùng đăng nhập
 Route::get('dang-nhap',[\App\Http\Controllers\UserController::class, 'login']);
@@ -582,8 +580,12 @@ Route::post('/quen-mat-khau', [App\Http\Controllers\UserController::class, 'send
 Route::get('/reset-password/{token}', [App\Http\Controllers\UserController::class, 'showResetPasswordForm'])->name('password.reset');
 Route::post('/reset-password', [App\Http\Controllers\UserController::class, 'resetPassword'])->name('password.update');
 
-//sản phẩm
-Route::get('/',[\App\Http\Controllers\ProductController::class, 'get_all']);
+// Trang welcome - trang chào mừng người dùng
+Route::get('/', function () {
+    return view('welcome');
+});
+
+// Danh sách sản phẩm (admin) - chỉ dành cho admin
 Route::get('/danh-sach-san-pham',[\App\Http\Controllers\ProductController::class, 'get_all']);
 Route::get('/them-gio-hang/{id}',[\App\Http\Controllers\CartController::class, 'add_cart']);
 Route::get('/gio-hang',[\App\Http\Controllers\CartController::class, 'cart']);
